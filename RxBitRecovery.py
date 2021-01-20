@@ -10,7 +10,6 @@ class RxBitRecovery:
         self.binary_info = binary_info
         self.num_symbols = num_symbols
 
-
         self.mapping_type = 'QPSK'
         self.EC_code = None
         self.BER_calc = None

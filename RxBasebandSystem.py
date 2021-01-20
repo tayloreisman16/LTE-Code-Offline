@@ -98,11 +98,12 @@ class RxBasebandSystem:
         for antenna_index in range(1):
             self.correlation_observations = -1
 
-            chan_q = self.genie_chan_time[antenna_index, 0, :]  # 2048
+            chan_q = self.genie_chan_time[antenna_index, 0, :]
+            plt.plot(chan_q)
+            plt.show()
             self.start_sample = (self.len_CP - 4) - 1
 
             total_loops = int(np.ceil(self.input_time_series_data.shape[1] / self.stride_value))
-            # print(total_loops)
             correlation_val_vector = np.zeros(total_loops)
 
             ptr_adj, loop_count, pattern_count = 0, 0, 0
@@ -111,7 +112,6 @@ class RxBasebandSystem:
             symbol_count = np.zeros(tap_delay)
             corrected_ptr = np.zeros(1000)
             while loop_count <= total_loops:
-                # print(loop_count)
                 if self.correlation_observations == -1:
                     ptr_frame = loop_count * self.stride_value + self.start_sample + ptr_adj
                 elif self.correlation_observations < 5:
@@ -119,11 +119,8 @@ class RxBasebandSystem:
                 else:
                     ptr_frame = (np.ceil(np.dot(x_symbol_count_lookahead[-1:], m_c_coefficients) - self.len_CP / 4))[0]
 
-                # print(self.rx_buffer_time0.shape[1])
                 if (self.num_of_synchs_and_synch_bins[0] - 1) * self.rx_buff_len + self.NFFT + ptr_frame < self.input_time_series_data.shape[1]:
-                    # if (self.MM[0] - 1)*self.rx_buff_len + self.NFFT + ptr_frame - 1 < self.rx_buffer_time0.shape[1]:
                     for i in range(self.num_of_synchs_and_synch_bins[0]):
-                        # print(i)
                         start = int(i * self.rx_buff_len + ptr_frame)
                         fin = int(i * self.rx_buff_len + ptr_frame + self.NFFT)
                         self.rx_buffer_time_data[i * self.NFFT: (i + 1) * self.NFFT] = self.input_time_series_data[antenna_index, start:fin]
@@ -135,14 +132,11 @@ class RxBasebandSystem:
                         fin = (i + 1) * self.NFFT
                         fft_vec[i, 0:self.NFFT] = np.fft.fft(self.rx_buffer_time_data[start: fin], self.NFFT)
 
-                    # print(self.used_bins_synch)
-                    # print(self.used_bins_synch.shape)
                     synch_freq_data = fft_vec[:, self.synch_used_bins]
                     synch_freq_data_vector = np.reshape(synch_freq_data, (1, synch_freq_data.shape[0] * synch_freq_data.shape[1]))
                     synch_pow_est = sum(sum(synch_freq_data_vector * np.conj(synch_freq_data_vector))).real / synch_freq_data_vector.shape[1]
                     synch_freq_data_normalized = synch_freq_data_vector / np.sqrt(synch_pow_est)
 
-                    # from transmit antenna 1 only?
                     chan_freq0 = np.reshape(self.channel_freq[antenna_index, 0, self.synch_used_bins], (1, np.size(self.synch_used_bins)))
 
                     chan_freq = np.tile(chan_freq0, (1, self.num_of_synchs_and_synch_bins[0]))
@@ -153,13 +147,11 @@ class RxBasebandSystem:
 
                     tiled_delay_matrix = np.tile(delay_matrix, (self.num_of_synchs_and_synch_bins[0], 1))
 
-                    # maybe replace index 0 with antenna_index
                     self.correlation_matrix = np.dot(np.conj(self.synch_reference)[None, :], np.dot(np.diag(synch_freq_data_normalized[0]), tiled_delay_matrix))
                     abs_correlation_matrix = abs(self.correlation_matrix[0, :])
                     correlation_value, correlation_index = abs_correlation_matrix.max(0), abs_correlation_matrix.argmax(0)
                     correlation_index = correlation_index - 1
                     correlation_val_vector[loop_count] = correlation_value
-                    # print('no')
                     if correlation_value > 0.5 * synch_freq_data_normalized.shape[1] or self.correlation_observations > -1:
                         if correlation_index > np.ceil(0.75 * self.len_CP):
                             if self.correlation_observations == -1:  # 0
@@ -168,7 +160,6 @@ class RxBasebandSystem:
                             elif self.correlation_observations < 5:
                                 ptr_frame += np.ceil(0.5 * self.len_CP)
 
-                            # Take FFT of the window
                             fft_vec = np.zeros((self.num_of_synchs_and_synch_bins[0], self.NFFT), dtype=complex)
                             for i in range(self.num_of_synchs_and_synch_bins[0]):
                                 start = i * self.NFFT
@@ -180,7 +171,6 @@ class RxBasebandSystem:
                             synch_pow_est = sum(sum(synch_freq_data_vector * np.conj(synch_freq_data_vector))).real / synch_freq_data_vector.shape[1]
                             synch_freq_data_normalized = synch_freq_data_vector / np.sqrt(synch_pow_est)
 
-                            # from transmit antenna 1 only?
                             chan_freq0 = np.reshape(self.channel_freq[antenna_index, 0, self.synch_used_bins],
                                                     (1, np.size(self.synch_used_bins)))
 
@@ -192,7 +182,6 @@ class RxBasebandSystem:
 
                             tiled_delay_matrix = np.tile(delay_matrix, (self.num_of_synchs_and_synch_bins[0], 1))
 
-                            # maybe replace index 0 with antenna_index
                             self.correlation_matrix = np.dot(np.conj(self.synch_reference)[None, :],
                                                              np.dot(np.diag(synch_freq_data_normalized[0]), tiled_delay_matrix))
                             abs_correlation_matrix = abs(self.correlation_matrix[0, :])
@@ -200,7 +189,6 @@ class RxBasebandSystem:
                             correlation_val_vector[loop_count] = correlation_value
 
                         time_synch_ind = self.correlation_frame_index_value_buffer[antenna_index, max(self.correlation_observations, 1), 0]
-                        # print("Current Time Synch Index: ", time_synch_ind)
                         if ptr_frame - time_synch_ind > (2 * self.len_CP + self.NFFT) or self.correlation_observations == -1:
                             self.correlation_observations += 1
 
@@ -220,7 +208,6 @@ class RxBasebandSystem:
 
                             if self.correlation_observations > 3:
                                 y_time_series_current_ptr = corrected_ptr[0:min(tap_delay, self.correlation_observations)]
-                                # print(y_time_series_current_ptr)
                                 x_symbol_count_current = np.zeros((len(symbol_count_current), 2))
                                 x_symbol_count_current[:, 0] = np.ones(len(symbol_count_current))
                                 x_symbol_count_current[:, 1] = symbol_count_current
@@ -241,35 +228,19 @@ class RxBasebandSystem:
                             channel_estimate_avg_across_synchs = np.sum(h_est0, axis=0) / (self.num_of_synchs_and_synch_bins[0])
 
                             h_est1[self.synch_used_bins, 0] = channel_estimate_avg_across_synchs
-                            # print("Correlation Obs:", self.corr_obs)
-                            # print("Shape of Est_Chan_Freq_P: ", self.est_chan_freq_n.shape)
+
                             self.est_chan_freq_p[antenna_index, self.correlation_observations, 0:len(h_est1)] = h_est1[:, 0]
                             self.est_chan_freq_n[antenna_index, self.correlation_observations, 0:len(channel_estimate_avg_across_synchs)] = channel_estimate_avg_across_synchs
-
-                            # if sys_model.diagnostic == 1 and loop_count == 0:
-                            #     xax = np.array(range(0, self.NFFT)) * sys_model.fs / self.NFFT
-                            #     yax1 = 20 * np.log10(abs(h_est1 + 1 * 10 ** -10))
-                            #     yax2 = 20 * np.log10(abs(np.fft.fft(chan_q, self.NFFT)))
-                            #
-                            #     plt.plot(xax, yax1, 'r')
-                            #     plt.plot(xax, yax2, 'm_c_coefficients')
-                            #     plt.show()
 
                             h_est_time = np.fft.ifft(h_est1[:, 0], self.NFFT)
                             self.est_chan_impulse[antenna_index, self.correlation_observations, 0:len(h_est_time)] = h_est_time
 
                             h_est_ext = np.tile(channel_estimate_avg_across_synchs, (1, self.num_of_synchs_and_synch_bins[0])).T
-                            # print("equalized synch")
 
                             synch_equalized = (input_data_freq_normalized * np.conj(h_est_ext[:, 0])) / ((np.conj(h_est_ext[:, 0]) * h_est_ext[:, 0]) + (1 / self.SNR))
                             self.est_synch_freq[antenna_index, self.correlation_observations, 0:len(self.synch_used_bins) * self.num_of_synchs_and_synch_bins[0]] = synch_equalized
-                            # print("SYNCH EQ: ", self.est_synch_freq)
-                            # if sys_model.diagnostic == 1 and loop_count == 0:
-                            #     plt.plot(synch_equalized.real, synch_equalized.imag, '.')
-                            #     plt.show()
 
                 loop_count += 1
-                # print(loop_count)
 
     def rx_data_demod(self):
         if self.num_ant_txrx == 1:
@@ -290,23 +261,14 @@ class RxBasebandSystem:
                         input_data_freq_normalized = input_data_freq / (np.sqrt(input_pow_est) + 1e-10)
                         # print('Data Recovered after RX and Bin Selection: ', input_data_freq_normalized)
                         if self.param_est == 'Estimated':
-                            # print('hello')
                             channel_estimate_avg_across_synchs = self.est_chan_freq_p[antenna_index, corr_obs_index, self.used_bins_data]
                         elif self.param_est == 'Ideal':
-                            # print('bye')
                             channel_estimate_avg_across_synchs = self.h_f[antenna_index, 0, :]
 
                         del_rotate = np.exp(1j * 2 * (np.pi / self.NFFT) * self.used_bins_data * self.correlation_frame_index_value_buffer[antenna_index, corr_obs_index, 1])
                         input_data_freq_rotated = np.dot(np.diag(input_data_freq_normalized), del_rotate)
-                        # print('Frequency Data after RX: ', input_data_freq_rotated)
                         input_data_freq_equalized = (input_data_freq_rotated * np.conj(channel_estimate_avg_across_synchs)) / ((np.conj(channel_estimate_avg_across_synchs) * channel_estimate_avg_across_synchs) + (1 / self.SNR))
-                        # print('Frequency Data (Equalized) after RX: ', input_data_freq_equalized)
-                        # print('corr_obs_index * synch_dat * data+symb', corr_obs_index * self.synch_data[1] + data_symbol_index)
-                        # print('0:len(self.used_bins_data', len(self.used_bins_data))
-                        # print("self.synch_data[1]", self.synch_data[1])
-                        # print("corr_obs_index", corr_obs_index)
-                        # print("data_symbol_index", data_symbol_index)
-                        # print("Data_Equalized: ", input_data_freq_equalized)
+
                         if corr_obs_index * self.synch_data_pattern[1] + data_symbol_index == 0:
                             self.est_data_freq[antenna_index, corr_obs_index, :] = self.est_data_freq[antenna_index, corr_obs_index, :] + input_data_freq_equalized
                         else:

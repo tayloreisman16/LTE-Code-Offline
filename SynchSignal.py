@@ -9,11 +9,10 @@ class SynchSignal:
         self.num_used_bins = num_synch_bins
         self.num_ant = num_ant_txrx
         self.NFFT = NFFT
-        # print('Synch bins', self.num_used_bins)
+
         self.used_bins0 = list(range(int(-self.num_used_bins / 2), 0)) + list(range(1, int(self.num_used_bins / 2) + 1))
         self.used_bins = ((self.NFFT + np.array(self.used_bins0)) % self.NFFT)
         seed_value = 4
-        # print(self.used_bin_ind[1000:1100].astype(int))
 
         self.synch_data = synch_data
 
@@ -37,10 +36,8 @@ class SynchSignal:
             random.shuffle(map_index_position)
             index, self.ZChu0 = zip(*map_index_position)
             print("Zadoff Chu Index: ", index)
-        # print(len(self.ZChu0))
 
         self.ZChu1 = np.zeros((self.num_ant, int(self.NFFT)), dtype=complex)
-        # print(self.ZChu1[0, self.used_bin_ind.astype(int)])
+
         for ant in range(self.num_ant):
-            # print(ant)
             self.ZChu1[0, self.used_bins.astype(int)] = self.ZChu0[0: int(self.M[1])]

@@ -72,39 +72,40 @@ class MultiAntennaSystem:
         h = np.zeros((self.num_ant_txrx, self.num_ant_txrx), dtype=object)
         if self.num_ant_txrx == 1:
             if test_case == 0:
-                h[0, 0] = np.array([0.3977, 0.7954 - 0.3977j, -0.1988, 0.0994, -0.0398])
+                h[0, 0] = np.array([1])
             else:
                 print('# Load from MATLAB channel toolbox - currently not done')
                 exit(0)
 
         elif self.num_ant_txrx == 2:
             if test_case == 0:
-                h[0, 0] = np.array([0.3977, 0.7954 - 0.3977j, -0.1988, 0.0994, -0.0398])
-                h[0, 1] = np.array([0.8423j, 0.5391, 0, 0, 0])
-                h[1, 0] = np.array([0.1631, -0.0815 + 0.9784j, 0.0978, 0, 0])
-                h[1, 1] = np.array([0.0572j, 0.3659j, 0.5717 - 0.5717j, 0.4574, 0])
+                # h[0, 0] = np.array([0.3977, 0.7954 - 0.3977j, -0.1988, 0.0994, -0.0398])
+                # h[0, 1] = np.array([0.8423j, 0.5391, 0, 0, 0])
+                # h[1, 0] = np.array([0.1631, -0.0815 + 0.9784j, 0.0978, 0, 0])
+                # h[1, 1] = np.array([0.0572j, 0.3659j, 0.5717 - 0.5717j, 0.4574, 0])
+                h[0, 0] = np.array([1])
+                h[0, 1] = np.array([1])
+                h[1, 0] = np.array([1])
+                h[1, 1] = np.array([1])
             else:
                 print('# Load from MATLAB channel toolbox - currently not done')
                 exit(0)
 
         for rx in range(self.num_ant_txrx):
             for tx in range(self.num_ant_txrx):
-                if self.wireless_channel == 'AWGN':
-                    self.channel_time[rx, tx, 1] = 1
+                if test_case == 0:
+                    self.channel_time[rx, tx, 0:len(h[rx, tx])] = h[rx, tx] / np.linalg.norm(h[rx, tx])
                 else:
-                    if test_case == 0:
-                        # need to normalize the channel
-                        self.channel_time[rx, tx, 0:len(h[rx, tx])] = h[rx, tx] / np.linalg.norm(h[rx, tx])
-                    else:
-                        # channels from MATLAB toolbox already normalized
-                        print('# Load normalized channels from MATLAB toolbox - currently not done')
-                        exit(0)
+                    print('# Load normalized channels from MATLAB toolbox - currently not done')
+                    exit(0)
 
                     # Take FFT of channels
                     self.channel_freq[rx, tx, :] = np.fft.fft(self.channel_time[rx, tx, 0:len(h[rx, tx])], self.NFFT)
                     self.h_f[rx, tx, :] = self.channel_freq[rx, tx, self.used_bins.astype(int)]
 
         self.genie_chan_time = self.channel_time
+        plt.plot(self.genie_chan_time[0, 0, :])
+        plt.show()
 
         max_ind = 0
         for i in range(self.channel_time.shape[0]):

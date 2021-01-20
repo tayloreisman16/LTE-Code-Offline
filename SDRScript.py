@@ -22,7 +22,7 @@ matlab_object_name = 'signal'
 
 SDR_profiles = {0: {'system_scenario': '4G5GSISO-TU',
                     'diagnostic': 1,
-                    'wireless_channel': 'Fading',
+                    'wireless_channel': 'AWGN',
                     'channel_band': 0.97 * 960e3,
                     'bin_spacing': 15e3,
                     'channel_profile': 'LTE-TU',
@@ -69,7 +69,7 @@ for case in range(num_cases):
         chan_type = sys_model.wireless_channel
         phy_chan = sys_model.phy_chan
         NFFT = sys_model.NFFT
-        # print("NFFT:", NFFT)
+
         num_bins0 = sys_model.num_bins0  # Max umber of occupied bins for data
         num_bins1 = 4 * np.floor(num_bins0 / 4)  # Make number of bins a multiple of 4 for MIMO
 
