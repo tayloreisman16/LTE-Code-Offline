@@ -36,6 +36,7 @@ class RxBasebandSystem:
         self.chan_max_offset = multi_ant_sys.chan_max_offset
         self.h_f = multi_ant_sys.h_f  # channel FFT
         self.genie_chan_time = multi_ant_sys.genie_chan_time
+        self.genie_chan_freq = multi_ant_sys.channel_freq
 
         self.synch_reference = Caz.ZChu0
         self.synch_used_bins = multi_ant_sys.used_bins_synch  # Same as Caz.used_bins.astype(int)
@@ -50,8 +51,7 @@ class RxBasebandSystem:
         # print(self.rx_buffer_time)
         lmax_s = int(len(self.symbol_pattern) - sum(self.symbol_pattern))
         lmax_d = int(sum(self.symbol_pattern))
-        print()
-
+        # print()
         self.correlation_frame_index_value_buffer = np.ones((self.input_time_series_data.shape[0], 3))  # NEED TO CHANGE THIS IN GNURADIO
         self.correlation_frame_index_value_buffer = np.zeros((self.num_ant_txrx, lmax_s, 2))  # ONE OF THESE 2 WILL BE REMOVED
 
@@ -77,7 +77,7 @@ class RxBasebandSystem:
         self.est_chan_impulse = np.zeros((self.num_ant_txrx, lmax_s, self.NFFT), dtype=complex)
 
         self.num_of_synchs_and_synch_bins = Caz.M.astype(int)
-        self.synch_data_pattern = Caz.synch_data
+        self.synch_data_pattern = Caz.synch_data_shape
         # print("CAZ: ", Caz.synch_state)
         self.synch_state = Caz.synch_state
 
@@ -99,8 +99,6 @@ class RxBasebandSystem:
             self.correlation_observations = -1
 
             chan_q = self.genie_chan_time[antenna_index, 0, :]
-            plt.plot(chan_q)
-            plt.show()
             self.start_sample = (self.len_CP - 4) - 1
 
             total_loops = int(np.ceil(self.input_time_series_data.shape[1] / self.stride_value))
@@ -127,7 +125,7 @@ class RxBasebandSystem:
 
                     # Take FFT of the window
                     fft_vec = np.zeros((self.num_of_synchs_and_synch_bins[0], self.NFFT), dtype=complex)
-                    for i in range(self.num_of_synchs_and_synch_bins[0]):
+                    for i in range(self.num_of_synchs_and_synch_bins[0]): #TODO: AT THIS POINT START TAKING FFTs of THE DATA from 0-80 index
                         start = i * self.NFFT
                         fin = (i + 1) * self.NFFT
                         fft_vec[i, 0:self.NFFT] = np.fft.fft(self.rx_buffer_time_data[start: fin], self.NFFT)
@@ -197,11 +195,11 @@ class RxBasebandSystem:
                             self.correlation_frame_index_value_buffer[antenna_index, self.correlation_observations, 2] = correlation_value
 
                             corrected_ptr[pattern_count % tap_delay] = sum(self.correlation_frame_index_value_buffer[antenna_index, self.correlation_observations, 0:2])
-                            symbol_count[pattern_count % tap_delay] = pattern_count * sum(sys_model.synch_data)  # No need for +1 on lhs
+                            symbol_count[pattern_count % tap_delay] = pattern_count * sum(sys_model.synch_data_shape)  # No need for +1 on lhs
                             pattern_count += 1
 
                             symbol_count_current = symbol_count[0:min(self.correlation_observations, tap_delay)]
-                            symbol_count_lookahead = np.concatenate((symbol_count_current, np.atleast_1d(pattern_count * sum(sys_model.synch_data))))
+                            symbol_count_lookahead = np.concatenate((symbol_count_current, np.atleast_1d(pattern_count * sum(sys_model.synch_data_shape))))
                             x_symbol_count_lookahead = np.zeros((len(symbol_count_lookahead), 2))
                             x_symbol_count_lookahead[:, 0] = np.ones(len(symbol_count_lookahead))
                             x_symbol_count_lookahead[:, 1] = symbol_count_lookahead
@@ -216,11 +214,11 @@ class RxBasebandSystem:
                                 # print(m_c_coefficients)
 
                             # recovered data with delay removed - DataRecov in MATLAB code
-                            input_data_freq_normalized = np.dot(np.diag(synch_freq_data_normalized[0]), tiled_delay_matrix[:, correlation_index])  # -1
+                            input_data_freq_normalized = np.dot(np.diag(synch_freq_data_normalized[0]), tiled_delay_matrix[:, correlation_index])  #TODO
 
                             h_est1 = np.zeros((self.NFFT, 1), dtype=complex)
                             # TmpV1 in MATLAB code
-                            input_data_freq_rotated = (input_data_freq_normalized * np.conj(self.synch_reference)) / (1 + (1 / self.SNR))
+                            input_data_freq_rotated = (input_data_freq_normalized * np.conj(self.synch_reference)) / (1 + (1 / self.SNR)) #TODO
 
                             h_est00 = np.reshape(input_data_freq_rotated, (input_data_freq_rotated.shape[0], self.num_of_synchs_and_synch_bins[0]))
                             h_est0 = h_est00.T
@@ -231,7 +229,8 @@ class RxBasebandSystem:
 
                             self.est_chan_freq_p[antenna_index, self.correlation_observations, 0:len(h_est1)] = h_est1[:, 0]
                             self.est_chan_freq_n[antenna_index, self.correlation_observations, 0:len(channel_estimate_avg_across_synchs)] = channel_estimate_avg_across_synchs
-
+                            plt.plot(self.est_chan_freq_p[0, 0, :].real)
+                            plt.show()
                             h_est_time = np.fft.ifft(h_est1[:, 0], self.NFFT)
                             self.est_chan_impulse[antenna_index, self.correlation_observations, 0:len(h_est_time)] = h_est_time
 

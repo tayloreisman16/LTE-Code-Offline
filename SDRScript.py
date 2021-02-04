@@ -1,14 +1,15 @@
-import numpy as np
+import pickle
+
 import matplotlib.pyplot as plt
+import numpy as np
+from FrequencyOffsetTuner import FrequencyOffsetTuner
+from MultiAntennaSystem import MultiAntennaSystem
+from OFDM import OFDM
+from RxBasebandSystemNEW import RxBasebandSystem
+from SynchSignal import SynchSignal
 # import plotly.plotly as py
 from SystemModel import SystemModel
-from OFDM import OFDM
-from SynchSignal import SynchSignal
-from MultiAntennaSystem import MultiAntennaSystem
-from RxBasebandSystem import RxBasebandSystem
-from FrequencyOffsetTuner import FrequencyOffsetTuner
-import pickle
-import scipy.io
+
 # from scipy import signal
 # from RxBitRecovery import RxBitRecovery
 
@@ -32,7 +33,7 @@ SDR_profiles = {0: {'system_scenario': '4G5GSISO-TU',
                     'MIMO_method': 'SpMult',
                     'SNR': SNR,
                     'ebno_db': [24],
-                    'num_symbols': [512],
+                    'num_symbols': [1],
                     'stream_size': 1},
                 1: {'system_scenario': 'WIFIMIMOSM-A',
                     'diagnostic': 0,
@@ -75,7 +76,8 @@ for case in range(num_cases):
 
         # positive and negative bin indices
         # all_bins = np.array(list(range(-int(num_bins1 / 2), 0)) + list(range(1, int(num_bins1 / 2) + 1)))
-        all_bins = np.array([-4, -3, -2, -1, 1, 2, 3, 4])
+        # all_bins = np.array([-4, -3, -2, -1, 1, 2, 3, 4])
+        all_bins = np.array([1])
         # print("Bins Used Index: ", all_bins)
         # positive and negative bin indices
         ref_bins0 = np.random.randint(1, int(num_bins1 / 2) + 1, size=int(np.floor(num_bins1 * sys_model.ref_sigs / 2)))
@@ -97,7 +99,7 @@ for case in range(num_cases):
         else:
             SNR_dB = SNR
 
-        synch_data = sys_model.synch_data
+        synch_data = sys_model.synch_data_shape
         num_synchdata_patterns = int(np.ceil(sys_model.num_symbols[loop_iter] / sum(synch_data)))
         num_symbols = sum(synch_data) * num_synchdata_patterns
 
@@ -161,8 +163,8 @@ for case in range(num_cases):
         # IMPORT FROM GNURADIO HERE
         # !!!!!!!!!!!!!!!!!!!!!!!!!
 
-        with open("shuffled_8bin_seed_4_10_30_19_2timeFs.pckl", 'wb') as handle:
-            pickle.dump(multi_ant_sys.buffer_data_tx_time, handle, protocol=2)
+        # with open("shuffled_8bin_seed_4_10_30_19_2timeFs.pckl", 'wb') as handle:
+        #     pickle.dump(multi_ant_sys.buffer_data_tx_time, handle, protocol=2)
         # **** multi_ant_sys.buffer_data_tx_time is the variable to pckl for GNURadio transmitter **** #
 
         # Receive signal after convolution with channel
@@ -171,7 +173,9 @@ for case in range(num_cases):
 
         # Receive signal with noise added
         multi_ant_sys.additive_noise(sys_model.SNR_type, SNR_dB, wireless_channel, sys_model.sig_datatype)
-
+        plt.plot(multi_ant_sys.buffer_data_rx_time[0, :].real)
+        plt.plot(multi_ant_sys.buffer_data_rx_time[0, :].imag)
+        plt.show()
         # data_gnu = scipy.io.loadmat(offline_directory)
         # multi_ant_sys.buffer_data_rx_time = data_gnu[matlab_object_name]
         # print(multi_ant_sys.buffer_data_rx_time)
@@ -182,6 +186,7 @@ for case in range(num_cases):
             freq_sigma_buffer = np.zeros([1])
             clear_condition = 0
             timeseries_storage = multi_ant_sys.buffer_data_rx_time
+
             for frequency in frequencies:
                 print("Checking Frequency Offset at frequency ", frequency, " Hz!")
                 multi_ant_sys.buffer_dat_rx_time = timeseries_storage
@@ -250,14 +255,8 @@ for case in range(num_cases):
         # ax[1].plot(frq, abs(Y), 'r')  # plotting the spectrum
         # ax[1].set_xlabel('Freq (Hz)')
         # ax[1].set_ylabel('|Y(freq)|')
-        plt.show()
-
-        # f, t, Sxx = signal.spectrogram(multi_ant_sys.buffer_data_rx_time[0, :], fs, return_onesided=False)
-        # print(t, f, Sxx)
-        # plt.pcolormesh(t, f, Sxx)
-        # plt.ylabel('Frequency [Hz]')
-        # plt.xlabel('Time [sec]')
         # plt.show()
+
         rx_sys = RxBasebandSystem(multi_ant_sys, Caz, param_est, case)
 
         rx_sys.param_est_synch(sys_model)

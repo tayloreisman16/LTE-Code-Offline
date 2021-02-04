@@ -104,7 +104,9 @@ class MultiAntennaSystem:
                     self.h_f[rx, tx, :] = self.channel_freq[rx, tx, self.used_bins.astype(int)]
 
         self.genie_chan_time = self.channel_time
-        plt.plot(self.genie_chan_time[0, 0, :])
+        self.genie_chan_freq = np.fft.fft(self.genie_chan_time[0, 0, :])
+        plt.plot(self.genie_chan_freq.real)
+        plt.plot(self.genie_chan_freq.imag)
         plt.show()
 
         max_ind = 0
@@ -236,8 +238,7 @@ class MultiAntennaSystem:
                 # print("Check ", self.buffer_data_tx_time)
                 # print(self.buffer_data_tx_time.shape)
         self.buffer_data_tx_time *= digital_gain
-        plt.plot(self.buffer_data_tx_time.real[0, 81:320])
-        plt.show()
+
 
     def rx_signal_gen(self):
         for rx in range(self.num_ant_txrx):
@@ -279,3 +280,8 @@ class MultiAntennaSystem:
                 awg_noise = np.sqrt(self.noise_var / 2) * np.random.normal(0, 1, self.buffer_data_rx_time[rx, :].shape) + 1j * np.sqrt(self.noise_var / 2) * np.random.normal(0, 1, self.buffer_data_rx_time[rx, :].shape)
 
             self.buffer_data_rx_time[rx, :] += awg_noise
+        plt.plot(self.buffer_data_tx_time.real[0, 80:160])
+        plt.show()
+        plt.plot(self.buffer_data_tx_time[0, :].real)
+        plt.plot(self.buffer_data_tx_time[0, :].imag)
+        plt.show()
