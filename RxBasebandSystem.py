@@ -90,8 +90,8 @@ class RxBasebandSystem:
         self.start_sample = None
         self.correlation_matrix = None
 
-    def param_est_synch(self, sys_model):
 
+    def param_est_synch(self, sys_model):
         self.stride_value = np.ceil(self.len_CP / 2)
         self.correlation_frame_index_value_buffer = np.zeros((self.num_ant_txrx, 250, 3))  # There are two more in the init.
 
