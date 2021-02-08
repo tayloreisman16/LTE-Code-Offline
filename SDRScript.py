@@ -99,7 +99,7 @@ for case in range(num_cases):
         else:
             SNR_dB = SNR
 
-        synch_data = sys_model.synch_data_shape
+        synch_data = sys_model.synch_data
         num_synchdata_patterns = int(np.ceil(sys_model.num_symbols[loop_iter] / sum(synch_data)))
         num_symbols = sum(synch_data) * num_synchdata_patterns
 
@@ -257,9 +257,9 @@ for case in range(num_cases):
         # ax[1].set_ylabel('|Y(freq)|')
         # plt.show()
 
-        rx_sys = RxBasebandSystem(multi_ant_sys, Caz, param_est, case)
+        rx_sys = RxBasebandSystem(multi_ant_sys, Caz)
 
-        rx_sys.param_est_synch(sys_model)
+        rx_sys.param_est_synch()
 
         rx_sys.rx_data_demod()
         rx_newshape = rx_sys.est_data_freq.shape[0] * rx_sys.est_data_freq.shape[1] * rx_sys.est_data_freq.shape[2]
